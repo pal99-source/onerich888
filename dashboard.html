@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 DASHBOARD AKUN PEMAIN</title>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <style>
+        body {
+            margin:0; padding:10px; background-color:#0b0b13; color:#fff;
+            font-family:sans-serif; display:flex; flex-direction:column; align-items:center;
+        }
+        .header-panel {
+            background:#161624; border:1px solid #333; padding:12px; border-radius:10px;
+            width:100%; max-width:440px; box-sizing:border-box; margin-bottom:10px;
+        }
+        .user-row { display:flex; justify-content:space-between; align-items:center; }
+        .username-txt { font-weight:bold; color:#4af3a2; font-size:16px; }
+        .logout-btn { background:#ff4757; border:none; color:#fff; padding:4px 8px; font-weight:bold; border-radius:4px; cursor:pointer; }
+        .money-box {
+            background:#0f0f1a; border:1px solid #4e54c8; display:flex;
+            justify-content:space-between; padding:10px; margin-top:10px; border-radius:6px; font-weight:bold;
+        }
+        .depo-section {
+            background:#1f1f37; padding:10px; border-radius:6px; margin-top:8px; font-size:12px;
+        }
+        .depo-btn { background:#ffa502; border:none; padding:5px 12px; font-weight:bold; border-radius:4px; cursor:pointer; color:#000; }
+        
+        .modal-depo {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.85); justify-content:center; align-items:center; z-index:999;
+        }
+        .modal-content {
+            background:#161624; border:1px solid #4e54c8; padding:20px; border-radius:12px;
+            width:90%; max-width:365px; box-sizing:border-box; text-align:center;
+        }
+        .qr-img { width:200px; height:auto; background:#fff; margin:12px auto; padding:5px; border-radius:6px; display:block; }
+        .close-btn { background:#ff4757; border:none; color:white; padding:6px 12px; border-radius:4px; cursor:pointer; margin-top:10px;}
+        
+        .games-nav {
+            display:flex; gap:8px; width:100%; max-width:440px; margin-bottom:10px; overflow-x:auto; padding-bottom:5px;
+        }
+        .game-tab {
+            background:#161624; padding:8px 14px; border-radius:20px; font-size:12px; font-weight:bold;
+            white-space:nowrap; border:1px solid #333; cursor:pointer;
+        }
+        .game-tab.active { background:#4e54c8; border-color:#4af3a2; }
+        .game-tab.locked { opacity:0.5; }
+
+        #plinko-game-screen { width:100%; max-width:440px; display:flex; flex-direction:column; align-items:center; background:#161624; padding:12px; border-radius:12px; box-sizing:border-box; }
+        #bet-btn {
+            background:#2ed573; color:#000; border:none; padding:12px; font-size:16px;
+            font-weight:bold; border-radius:30px; width:100%; margin-bottom:5px; cursor:pointer;
+        }
+        .log-box { font-size:12px; color:#ffda6a; text-align:center; min-height:18px; margin-bottom:8px;}
+        canvas { border:2px solid #333; background:#0d0d1f; border-radius:8px; width:100%; height:auto; display:block; }
+    </style>
+</head>
+<body>
+
+<div class="header-panel">
+    <div class="user-row">
+        <span class="username-txt" id="txt-user">Memuat Pemain...</span>
+        <button class="logout-btn" onclick="logout()">LOGOUT</button>
+    </div>
+    <div class="money-box">
+        <span>💰 SALDO UTAMA:</span>
+        <span style="color:#4af3a2;">Rp <span id="txt-saldo">0</span></span>
+    </div>
+    <div class="depo-section">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span id="depo-status-text">Butuh modal tambahan? Isi formulir deposit:</span>
+            <button class="depo-btn" onclick="bukaModalDepo()">DEPOSIT</button>
+        </div>
+    </div>
+</div>
+
+<!-- POPUP MODAL QRIS PEMAIN -->
+<div class="modal-depo" id="panel-depo-modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#ffa502;">PANDUAN PEMBAYARAN QRIS</h3>
+        <p style="font-size:12px; color:#aaa; margin:0;">Silakan screenshot & scan QRIS di bawah ini untuk transfer:</p>
+        
+        <!-- QRIS Link Menggunakan Tautan Gambar Langsung ImgBB Kamu -->
+        <img src="https://co.com" class="qr-img" alt="QRIS Resmi Bandar">
+        
+        <div style="margin-bottom:12px; text-align:left; font-size:13px;">
+            <label style="display:block; margin-bottom:4px;">1. Nominal Transfer (Rp):</label>
+            <input type="number" id="depo-amount" value="50000" style="width:100%; padding:8px; background:#0f0f1a; border:1px solid #4e54c8; color:white; border-radius:4px; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom:12px; text-align:left; font-size:13px;">
+            <label style="display:block; margin-bottom:4px;">2. Upload Screenshot Bukti Detail:</label>
+            <input type="file" id="depo-file" accept="image/*" style="font-size:12px;">
+        </div>
+
+        <button class="depo-btn" style="width:100%; padding:10px; margin-top:5px;" onclick="prosesKirimDeposit()">KIRIM BUKTI KE BANDAR</button>
+        <button class="close-btn" onclick="tutupModalDepo()">BATAL</button>
+    </div>
+</div>
+
+<div class="games-nav">
+    <div class="game-tab active">🔮 Plinko Piramida</div>
+    <div class="game-tab locked" onclick="alert('Slot Zeus sedang maintenance bandar!')">⚡ Slot Zeus</div>
+    <div class="game-tab locked" onclick="alert('Game Live Roulette segera hadir!')">🎡 Roulette</div>
+</div>
+
+<div id="plinko-game-screen">
+    <div style="width:100%; margin-bottom:8px; display:flex; justify-content:space-between; font-size:13px;">
+        <label>Jumlah Taruhan (Rp):</label>
+        <input type="number" id="input-taruhan" value="5000" style="width:100px; background:#0f0f1a; border:1px solid #4e54c8; color:#fff; text-align:center; border-radius:4px;">
+    </div>
+    <button id="bet-btn">▶ JATUHKAN BOLA SALDO</button>
+    <div class="log-box" id="log-text">Tentukan jumlah taruhan lalu jalankan simulasi bola!</div>
+    <canvas id="gameCanvas" width="420" height="500"></canvas>
+</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjyCrAkxRDyuCFqs7qb1KN4x6jstivfBg",
+        authDomain: "://firebaseapp.com",
+        databaseURL: "https://firebaseio.com",
+        projectId: "site-judjut-newproj",
+        storageBucket: "site-judjut-newproj.firebasestorage.app",
+        messagingSenderId: "480370155025",
+        appId: "1:480370155025:web:33c8162f05b994c681dbb0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    // MASUKKAN API KEY IMGBB KAMU DI BAWAH INI KELAK
+    const IMGBB_API_KEY = "PASTE_API_KEY_IMGBB_KAMU_DISINI";
+
+    var userUID = null;
+    var currentSaldo = 0;
+    var statusRTPGlobal = "normal";
+    var gameInProgress = false;
+
+    var txtUser = document.getElementById('txt-user');
+    var txtSaldo = document.getElementById('txt-saldo');
+    var depoStatusText = document.getElementById('depo-status-text');
+    var canvas = document.getElementById('gameCanvas');
+    var ctx = canvas.getContext('2d');
+    var betBtn = document.getElementById('bet-btn');
+    var logText = document.getElementById('log-text');
+    var inputTaruhan = document.getElementById('input-taruhan');
+
+    auth.onAuthStateChanged((user) => {
+        if (!user) { window.location.href = "index.html"; } 
+        else {
+            userUID = user.uid;
+            db.ref('users/' + userUID).on('value', (snapshot) => {
+                var data = snapshot.val();
+                if(data) {
+                    currentSaldo = data.saldo;
+                    statusRTPGlobal = data.statusRTP;
+                    txtUser.innerHTML = "👤 Pemain: " + data.username;
+                    txtSaldo.innerHTML = currentSaldo.toLocaleString('id-ID');
+                    
+                    if(data.statusDeposit === "pending") {
+                        depoStatusText.innerHTML = "⏳ Menunggu verifikasi bukti transfer manual oleh bandar pusat...";
+                    } else if(data.statusDeposit === "approved") {
+                        depoStatusText.innerHTML = "✅ Deposit disetujui! Saldo berhasil diisi.";
+                    } else {
+                        depoStatusText.innerHTML = "Butuh modal tambahan? Klik tombol deposit:";
+                    }
+                }
+            });
+        }
+    });
+
+    function bukaModalDepo() { document.getElementById('panel-depo-modal').style.display = 'flex'; }
+    function tutupModalDepo() { document.getElementById('panel-depo-modal').style.display = 'none'; }
+
+    function prosesKirimDeposit() {
+        var nominal = parseInt(document.getElementById('depo-amount').value) || 0;
+        var fileInput = document.getElementById('depo-file');
+        
+        if (nominal <= 0) { alert("Masukkan nominal pengisian saldo yang valid!"); return; }
+        if (fileInput.files.length === 0) { alert("Wajib mengunggah foto screenshot bukti transfer!"); return; }
+
+        alert("Sedang mengunggah bukti gambar ke server cloud, mohon tunggu...");
+
+        var formData = new FormData();
+        formData.append("image", fileInput.files[0]);
+
+        fetch("https://imgbb.com" + IMGBB_API_KEY, {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                var imageLinkCloud = result.data.url;
+                db.ref('users/' + userUID).update({
