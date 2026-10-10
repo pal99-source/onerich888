@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚙️ PANEL RAHASIA KENDALI BANDAR</title>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <style>
+        body { margin:0; padding:15px; background:#0b0b14; color:#fff; font-family:sans-serif; }
+        h2 { color:#ffa502; text-align:center; font-size:20px; border-bottom:2px dashed #333; padding-bottom:10px; }
+        .user-card {
+            background:#161624; border:1px solid #444; border-radius:8px; padding:12px; margin-bottom:12px;
+        }
+        .user-info { display:flex; justify-content:space-between; font-weight:bold; margin-bottom:8px; }
+        .btn-group { display:flex; gap:5px; margin-top:8px; }
+        .control-btn { flex:1; border:none; padding:8px; font-weight:bold; border-radius:4px; cursor:pointer; font-size:12px; }
+        .btn-normal { background:#747d8c; color:#fff; }
+        .btn-sial { background:#ff4757; color:#fff; }
+        .btn-jackpot { background:#2ed573; color:#000; }
+        
+        .depo-alert { 
+            background:#2a1f0f; border:1px solid #ffa502; padding:10px; 
+            border-radius:6px; font-size:12px; margin-top:8px; 
+        }
+        .bukti-link {
+            display:inline-block; background:#4e54c8; color:white; padding:5px 10px;
+            text-decoration:none; border-radius:4px; font-weight:bold; margin-top:6px; margin-bottom:6px;
+            font-size:11px; text-align:center;
+        }
+        .acc-btn { background:#2ed573; border:none; padding:8px; font-weight:bold; border-radius:4px; cursor:pointer; width:100%; margin-top:5px;}
+        .active-status { font-size:12px; font-weight:bold; padding:2px 6px; border-radius:4px; background:#222; }
+    </style>
+</head>
+<body>
+
+<h2>⚙️ HAK KENDALI PUSAT BANDAR (MANUAL DEPOSIT CONTROL)</h2>
+<div id="users-list-area">Menghubungkan ke jaringan database pemain...</div>
+
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyAjyCrAkxRDyuCFqs7qb1KN4x6jstivfBg",
+        authDomain: "://firebaseapp.com",
+        databaseURL: "https://firebaseio.com",
+        projectId: "site-judjut-newproj",
+        storageBucket: "site-judjut-newproj.firebasestorage.app",
+        messagingSenderId: "480370155025",
+        appId: "1:480370155025:web:33c8162f05b994c681dbb0"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    db.ref('users').on('value', (snapshot) => {
+        var usersData = snapshot.val();
+        var container = document.getElementById('users-list-area');
+        container.innerHTML = '';
+
+        if(!usersData) { container.innerHTML = "Belum ada pemain yang terdaftar dalam sistem."; return; }
+
+        for (var uid in usersData) {
+            var user = usersData[uid];
+            var card = document.createElement('div');
+            card.className = 'user-card';
+
+            var statusBadgeColor = "#747d8c";
+            if(user.statusRTP === "SET SIAL") statusBadgeColor = "#ff4757";
+            if(user.statusRTP === "SET WIN") statusBadgeColor = "#2ed573";
+
+            var htmlContent = `
+                <div class="user-info">
+                    <span style="color:#4af3a2;">👤 ${user.username}</span>
+                    <span>Rp ${user.saldo.toLocaleString('id-ID')}</span>
+                </div>
+                <div style="font-size:12px; color:#aaa;">Email: ${user.email}</div>
+                <div style="margin-top:5px; font-size:13px;">
+                    Status RTP Saat Ini: <span class="active-status" style="color:${statusBadgeColor}">${user.statusRTP.toUpperCase()}</span>
+                </div>
+            `;
+
+            if (user.statusDeposit === "pending") {
+                htmlContent += `
+                    <div class="depo-alert">
+                        <div style="font-weight:bold; color:#ffa502;">📥 PERMINTAAN SALDO MASUK:</div>
+                        <div style="margin-top:4px;">Nominal Klaim: <b>Rp ${user.jumlahDeposit.toLocaleString('id-ID')}</b></div>
+                        
+                        <a href="${user.buktiGambarUrl}" target="_blank" class="bukti-link">🔍 KLIK UNTUK LIHAT FOTO BUKTI SS</a>
+                        
+                        <button class="acc-btn" onclick="setujuiDepositManual('${uid}', ${user.saldo}, ${user.jumlahDeposit})">TERIMA & ISI SALDO SEKARANG</button>
+                    </div>
+                `;
+            }
+
+            htmlContent += `
+                <div class="btn-group">
+                    <button class="control-btn btn-normal" onclick="ubahRTP('${uid}', 'normal')">NORMAL</button>
+                    <button class="control-btn btn-sial" onclick="ubahRTP('${uid}', 'SET SIAL')">SET SIAL</button>
+                    <button class="control-btn btn-jackpot" onclick="ubahRTP('${uid}', 'SET WIN')">SET WIN</button>
+                </div>
+            `;
+
+            card.innerHTML = htmlContent;
+            container.appendChild(card);
+        }
+    });
+
+    function ubahRTP(uid, statusBaru) {
+        db.ref('users/' + uid).update({ statusRTP: statusBaru });
+    }
+
+    function setujuiDepositManual(uid, saldoSekarang, jumlahDepo) {
+        db.ref('users/' + uid).update({
+            saldo: saldoSekarang + jumlahDepo,
+            statusDeposit: "approved",
+            jumlahDeposit: 0,
+            buktiGambarUrl: null
+        });
+    }
+</script>
+</body>
+</html>
